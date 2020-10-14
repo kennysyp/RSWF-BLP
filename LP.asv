@@ -1,0 +1,104 @@
+function F = LP(interaction,SD,SM,nl,nd,alpha)
+
+
+PL=interaction;			% interaction_ori 原始关联矩阵
+PD=interaction';
+P0=interaction;
+PZ =interaction;
+
+% PL=re_md_l;			% interaction_ori 原始关联矩阵
+% PD=re_md_d';
+% P0=re_md_l;
+% PZ = re_md_d;
+
+delta = 1;
+delta_l = 0;
+delta_lnc = 1;
+% alpha = 0.2;
+LPM = zeros(nl,nd);
+LPD = zeros(nl,nd);
+num_l = 1;
+
+while  (delta > 0.01 && num_l<1000)
+   
+    PL1 = alpha * SM * P0 + (1-alpha) * PL;
+    LPM = LPM + PL1;
+    delta =abs(sum(sum((abs(PL1)-abs(PL)))));
+    PL = PL1;
+    num_l = num_l+1;
+    
+end
+
+
+delta = 1;
+delta_d = 0;
+delta_dis = 1;
+num_p = 1;
+
+while  (delta > 0.01 && num_p<1000)
+    %PD1 = (1-alpha)*SD*PD+alpha*P0';
+    PD1 = alpha * (SD * PD)' + (1-alpha) * PZ;
+    LPD = LPD + PD1;
+    delta =abs(sum(sum((abs(PD1)-abs(PZ)))));
+%     delta_dis = abs(delta - delta_d);
+%     delta_d = delta;
+    PZ =PD1;
+    num_p= num_p+1;
+    
+end
+
+
+% 归一化
+for i=1:nd
+%     LPD_1 = LPD;
+%     LPM_1 = LPM;
+     MAX_D = max(LPD(:,i));
+    MIN_D = min(LPD(:,i));
+    % MAX_M = max(LPM(:,i));
+   %MIN_M = min(LPM(:,i));
+    %if MAX_D - MIN_D == 0
+        %LPD(:,i) = LPD(:,i)  / MAX_D; 
+   % else
+        LPD(:,i) = (LPD(:,i) - MIN_D) / (MAX_D - MIN_D); 
+    %end
+
+end
+ for i =1:nl
+     MAX_M = max(LPM(i,:));
+     MIN_M = min(LPM(i,:));
+     %if MAX_M - MIN_M == 0
+         %LPM(:,i) = LPM(:,i) /MAX_M;
+    %else
+        LPM(i,:) = (LPM(i,:) - MIN_M) / (MAX_M - MIN_M);
+    %end
+ end
+%  index_m = find(sum(interaction));
+% new_disease = find(sum(interaction) == 0);
+% if ~isempty(new_disease)
+%     for i=1:length(new_disease)
+%         S_m = zeros(nl,1);
+%         sum_index = sum(SD(new_disease(i),index_m(:)));
+%         for j=1:length(index_m)
+%            S_m  =  S_m + SD(index_m(j),new_disease(i)) * LPM(:,new_disease(i)) ./ sum_index;
+%         end
+%         LPM(:,new_disease(i)) = S_m;
+%     end
+% end
+% 
+% LPD_T = LPD';
+% index_d = find(sum(interaction,2));
+% new_lncRNA = find(sum(interaction,2) == 0);
+% if ~isempty(new_lncRNA)
+%     for i=1:length(new_lncRNA)
+%         S_d = zeros(nd,1);
+%         sum_index = sum(SM(new_lncRNA(i),index_d(:)));
+%         for j=1:length(index_d)
+%            S_d  =  S_d + SM(index_d(j),new_lncRNA(i)) * LPD_T(: ,new_lncRNA(i)) ./ sum_index;
+%         end
+%         LPD_T(:,new_lncRNA(i)) = S_d;
+%     end
+% end
+% LPD = LPD_T';
+% %F = (PL1+PD1')/2;
+beta = 1/2;
+F = beta * LPM + (1-beta) * LPD;

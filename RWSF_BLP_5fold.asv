@@ -1,0 +1,72 @@
+%clc;clear;
+% format long
+%% 原始数据
+lncSim = load('D:\MATLAB\RWSF-BLP\data\lncRNAsimilarity.txt');   %lncRNA 表达相似性
+disSim = load('D:\MATLAB\RWSF-BLP\data\diseasesimilarity.txt');   % disease 语义相似性
+interaction = load('D:\MATLAB\RWSF-BLP\data\known_lncRNA_disease_interaction.txt');
+[nl,nd] = size(interaction);
+interaction_ori = interaction;
+%% 数据处理方法
+ n = 1;
+ m=1;
+
+    [km,kd] = gaussiansimilarity(interaction_ori,nl,nd);  %calculating Gaussian similarity
+    %[cos_m,cos_d] = cosSim(interaction_ori);
+    % [SD,SM] = integrateds(kd,km,disSim,lncSim,nd,nl);
+%      D_re = G_Sim(SD,0.9);
+%      M_re = G_Sim(SM,0.5);
+    %[M_re,D_re] = G_Sim(SD,SM,0.2);
+    [M_re,D_re] = K_fusion( disSim,lncSim,kd,km,7,0.4);
+    %MD_mat_new = re_MD_D(M_re,D_re,interaction_ori,0.1);
+    %MD_mat_new = WKNKN(interaction_ori,SM,SD,50,0.5);
+%% 主方法
+   F_ori = LP(interaction_ori,D_re,M_re,nl,nd,0.2);
+   %F_ori = R_L_S_Classifiers(MD_mat_new,D_re,M_re); 
+ %%
+ F_ori_ori= F_ori;
+ index=find(interaction_ori==1);
+%%  5-fold 交叉验证
+auc = zeros(1,100);
+for k = 1:100
+    k
+    indices = crossvalind('Kfold', length(index), 5 );
+    interaction = interaction_ori;
+    F_ori=F_ori_ori;
+for cv = 1:5 
+       cv;
+       index_2 = find(cv == indices);
+       %%%移除已知关系
+       interaction(index(index_2)) = 0;
+       %%%计算得分矩阵
+%%  数据处理
+ [km,kd] = gaussiansimilarity(interaction,nl,nd); %calculating Gaussian similarity
+ %[SD,SM] = integrateds(kd,km,disSim,lncSim,nd,nl);
+%   D_re = G_Sim(SD,0.9);
+%   M_re = G_Sim(SM,0.5);
+%[M_re,D_re] = G_Sim(SD,SM,0.2);
+[M_re,D_re] = K_fusion(disSim,lncSim,kd,km,7,0.4);
+%   MD_mat_new = re_MD_D(M_re,D_re,interaction,0.1);
+ %MD_mat_new = WKNKN(interaction,SM,SD,50,0.5);
+%% 主方法
+   F = LP(interaction,D_re,M_re,nl,nd,0.2); 
+   %F = R_L_S_Classifiers(MD_mat_new,D_re,M_re); 
+%%
+      F_ori(index(index_2)) = F(index(index_2));
+      interaction = interaction_ori;
+end
+%% 画auc曲线 
+    pre_label_score = F_ori(:);
+    label_y = interaction_ori(:);
+    auc(k) = roc_1(pre_label_score,label_y,'red'); 
+end
+%% 
+ auc_ave = mean(auc);
+ auc_std = std(auc);
+%  x(m,n)=gama;
+%  y1(m,n)=auc_ave;
+%  z(m,n) = auc_std;
+%  n=n+1;
+%  end
+% m=m+1;
+% n=1;
+%  end  
